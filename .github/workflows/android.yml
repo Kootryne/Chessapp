@@ -19,6 +19,8 @@ jobs:
         run: python3 scripts/make_current_bot_much_smarter.py
       - name: Move AI search to worker
         run: python3 scripts/add_ai_worker.py
+      - name: Add bot vs bot and fullscreen board
+        run: python3 scripts/add_bot_vs_bot_fullscreen.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
