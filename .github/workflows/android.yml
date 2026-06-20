@@ -17,6 +17,8 @@ jobs:
           gradle-version: 8.10.2
       - name: Make current bot much smarter
         run: python3 scripts/make_current_bot_much_smarter.py
+      - name: Move AI search to worker
+        run: python3 scripts/add_ai_worker.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
