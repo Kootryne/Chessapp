@@ -15,6 +15,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
+      - name: Make current bot much smarter
+        run: python3 scripts/make_current_bot_much_smarter.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
