@@ -23,6 +23,8 @@ jobs:
         run: python3 scripts/add_bot_vs_bot_fullscreen.py
       - name: Add bot controls and speed fixes
         run: python3 scripts/add_bot_controls_speed_fix.py
+      - name: Add repeated-position handling
+        run: python3 scripts/fix_repetition_loops.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
