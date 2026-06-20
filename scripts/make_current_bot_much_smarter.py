@@ -14,7 +14,21 @@ s = s.replace(
 s = s.replace("aiTime = Number(thinkSelect.value)||2800;", "aiTime = Number(thinkSelect.value)||7000;")
 s = s.replace(
     'Fixed board scaling, less-squished pieces, and a much smarter bot mode. White still starts like normal chess.',
-    'Stronger bot mode: deeper search, quiescence for captures, better tactics, and longer think time. White still starts like normal chess.'
+    'Stronger bot mode: deeper search, quiescence for captures, mid-game bot switching, and a forced square board. White still starts like normal chess.'
+)
+
+# Force the board itself to always be 1:1, and force every grid cell to behave as a square.
+s = s.replace(
+    '.board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;',
+    '.board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:100%;height:auto;aspect-ratio:1/1;'
+)
+s = s.replace(
+    '.board-wrap{max-width:700px;margin:0 auto}',
+    '.board-wrap{width:min(94vw,700px);max-width:700px;margin:0 auto}'
+)
+s = s.replace(
+    '.square{position:relative;display:grid;place-items:center;user-select:none;touch-action:manipulation}',
+    '.square{position:relative;display:grid;place-items:center;user-select:none;touch-action:manipulation;aspect-ratio:1/1;min-width:0;min-height:0;overflow:hidden}'
 )
 
 old = """    function negamax(state, depth, alpha, beta){
@@ -82,5 +96,38 @@ if old not in s:
 s = s.replace(old, new)
 s = s.replace('for(let depth=1; depth<=6; depth++){', 'for(let depth=1; depth<=9; depth++){')
 
+# Allow switching between 2-player mode and AI mode without resetting the current game.
+s = s.replace(
+    "modeSelect.addEventListener('change', ()=>{ mode=modeSelect.value; aiColor = other(humanColor); setModeUI(); resetGame(); });",
+    "modeSelect.addEventListener('change', ()=>{ mode=modeSelect.value; aiColor = other(humanColor); setModeUI(); draw(); maybeAIMove(); });"
+)
+s = s.replace(
+    "sideSelect.addEventListener('change', ()=>{ humanColor=sideSelect.value; aiColor=other(humanColor); setModeUI(); resetGame(); });",
+    "sideSelect.addEventListener('change', ()=>{ humanColor=sideSelect.value; aiColor=other(humanColor); setModeUI(); draw(); maybeAIMove(); });"
+)
+
+# Extra Android/WebView safety: if aspect-ratio has a weird moment, JS forces the board height to match the width.
+needle = """  function draw(){
+    boardEl.innerHTML='';
+"""
+if needle in s:
+    s = s.replace(needle, """  function keepBoardSquare(){
+    const w = boardEl.clientWidth || boardEl.getBoundingClientRect().width;
+    if(w) boardEl.style.height = Math.round(w) + 'px';
+  }
+  window.addEventListener('resize', keepBoardSquare);
+  window.addEventListener('orientationchange', ()=>setTimeout(keepBoardSquare, 120));
+
+  function draw(){
+    keepBoardSquare();
+    boardEl.innerHTML='';
+""")
+s = s.replace("""    updateLabels();
+  }
+""", """    updateLabels();
+    keepBoardSquare();
+  }
+""", 1)
+
 p.write_text(s, encoding='utf-8')
-print('Current bot upgraded: max depth 9, quiescence search, longer think times.')
+print('Current bot upgraded, mid-game AI switching enabled, board forced square.')
