@@ -29,6 +29,8 @@ jobs:
         run: python3 scripts/add_instant_mode.py
       - name: Add fullscreen controls style and promotion
         run: python3 scripts/add_fullscreen_controls_style_promotion.py
+      - name: Add learner training
+        run: python3 scripts/add_learner_training.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
