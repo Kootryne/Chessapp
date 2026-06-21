@@ -33,6 +33,8 @@ jobs:
         run: python3 scripts/polish_motion_clean_ui.py
       - name: Fix visible glide animation
         run: python3 scripts/fix_visible_glide_animation.py
+      - name: Add cinematic move system
+        run: python3 scripts/cinematic_move_system.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
