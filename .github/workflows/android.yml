@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/final_fx_editor_fix.py
       - name: Fix custom setup reset and kings
         run: python3 scripts/fix_custom_start_and_kings.py
+      - name: Add multiking editor palette fix
+        run: python3 scripts/multiking_editor_palette_fix.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
