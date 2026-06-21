@@ -31,6 +31,8 @@ jobs:
         run: python3 scripts/add_fullscreen_controls_style_promotion.py
       - name: Add polished motion and clean UI
         run: python3 scripts/polish_motion_clean_ui.py
+      - name: Fix visible glide animation
+        run: python3 scripts/fix_visible_glide_animation.py
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
