@@ -13,10 +13,6 @@ body.editor-mode #floatingEditorDock{display:flex!important}.floating-editor-pie
 body.editor-mode.board-only .board-card{padding-bottom:calc(310px + env(safe-area-inset-bottom))!important}
 </style>''')
 
-# Remove previous one-king normalization behavior while keeping custom reset.
-s = s.replace('let customStart=null, usingCustomStart=false;', 'let customStart=null, usingCustomStart=false;')
-
-# Add multiking helpers. Insert before editor helpers if possible.
 helpers = r'''
   function kingCount(state,color){
     let n=0;
@@ -37,7 +33,6 @@ helpers = r'''
 '''
 s = s.replace('  function removeKings(color){', helpers + '  function removeKings(color){')
 
-# Disable old king normalization functions.
 s = s.replace("""  function removeKings(color){
     for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(game.board[r][c]===color+'K') game.board[r][c]=null;
   }
@@ -67,14 +62,12 @@ s = s.replace("""  function removeKings(color){
     usingCustomStart=true;
   }""")
 
-# Editor placement should allow multiple kings.
 s = s.replace("""    if(editorPiece && editorPiece!=='erase'){
       if(pieceType(editorPiece)==='K') removeKings(pieceColor(editorPiece));
       game.board[r][c]=editorPiece;
     } else game.board[r][c]=null;""", """    if(editorPiece && editorPiece!=='erase') game.board[r][c]=editorPiece;
     else game.board[r][c]=null;""")
 
-# Legal move generation: in multiking custom positions, allow king captures and skip normal check filtering.
 s = s.replace("""  function legalMovesFor(state, color){
     const out=[];
     for(let r=0;r<8;r++) for(let c=0;c<8;c++){
@@ -101,7 +94,6 @@ s = s.replace("""  function legalMovesFor(state, color){
     return out;
   }""")
 
-# Result logic for multiking custom games: win by removing all enemy kings, not standard checkmate.
 s = s.replace("""  function annotateResult(state){
     const moves=legalMovesFor(state,state.turn);
     if(moves.length===0){
@@ -135,14 +127,14 @@ s = s.replace("""  function annotateResult(state){
     return state.result;
   }""")
 
-# Make result overlay/status understand king-capture wins if those strings exist.
 s = s.replace("game.result.type==='checkmate'", "(game.result.type==='checkmate'||game.result.type==='kingCapture')")
-s = s.replace("Checkmate", "Win")
+s = s.replace('Checkmate', 'Win')
 
 # Boost king value so bots understand taking kings in multiking custom games.
-s = s.replace("const VALUES={P:100,N:320,B:330,R:500,Q:900,K:0};", "const VALUES={P:100,N:320,B:330,R:500,Q:900,K:20000};")
+s = s.replace('const VALUES={P:100,N:320,B:330,R:500,Q:900,K:0};', 'const VALUES={P:100,N:320,B:330,R:500,Q:900,K:20000};')
+s = s.replace('const VALUES = {P:100,N:320,B:330,R:500,Q:900,K:0};', 'const VALUES = {P:100,N:320,B:330,R:500,Q:900,K:20000};')
+s = s.replace('K:0', 'K:20000')
 
-# Floating editor dock that cannot be hidden by the bottom controls.
 floating = r'''
   function ensureFloatingEditorDock(){
     let dock=document.getElementById('floatingEditorDock');
@@ -170,13 +162,9 @@ floating = r'''
 
 '''
 s = s.replace('  function setupEditorPalette(){', floating + '  function setupEditorPalette(){')
-
-# Ensure dock is created when editor mode is entered.
 s = s.replace("""    if(editor && editorPalette && !editorPalette.children.length) setupEditorPalette();""", """    if(editor && editorPalette && !editorPalette.children.length) setupEditorPalette();
     if(editor) ensureFloatingEditorDock();""")
-s = s.replace("setupEditorPalette();", "setupEditorPalette(); ensureFloatingEditorDock();", 1)
-
-# Editor text.
+s = s.replace('setupEditorPalette();', 'setupEditorPalette(); ensureFloatingEditorDock();', 1)
 s = s.replace('Only one king per side. New game resets to this setup.', 'Multiple kings allowed. New game resets to this setup.')
 
 p.write_text(s, encoding='utf-8')
