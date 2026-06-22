@@ -50,16 +50,28 @@ s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
 
   const PST = {""")
 
-# Bots/AI should not wait: skip animation for bot-controlled moves by default.
+# Cancel stale bot/AI searches when starting a new game so double New Game does not stack old searches.
+s = s.replace("""function resetGame(){
+    clearMoveFX();""", """function cancelAIWork(){
+    aiJob++;
+    aiThinking=false;
+    if(aiWorker){ try{ aiWorker.terminate(); }catch(e){} aiWorker=null; }
+  }
+
+  function resetGame(){
+    clearMoveFX();
+    cancelAIWork();""")
+
+# Bots/AI should still animate, but the next move should not wait for the animation to finish.
 start = s.index('  function doMove(move){')
 end = s.index('\n\n  function getAIWorker', start)
 s = s[:start] + r'''  function doMove(move){
-    if(isAnimatingMove) return;
     const before=deepClone(game);
+    const botControlledMove = mode==='bot' || (mode==='ai' && before.turn===aiColor);
+    if(isAnimatingMove && !botControlledMove) return;
     const after=applyMove(before, move);
     const moveText = moveToText(before, move, after);
     const hist={game:before, selected, legalTargets:deepClone(legalTargets), moveTexts:deepClone(moveTexts), flipped, mode, humanColor, aiColor, aiTime, move};
-    const botControlledMove = mode==='bot' || (mode==='ai' && before.turn===aiColor);
     const finishMove = ()=>{
       history.push(hist);
       game=after;
@@ -76,6 +88,7 @@ s = s[:start] + r'''  function doMove(move){
     selected=null; legalTargets=[];
     if(botControlledMove){
       finishMove();
+      try{ animateMoveVisual(before, move, ()=>{}); }catch(e){}
       return;
     }
     isAnimatingMove=true;
@@ -86,4 +99,4 @@ s = s[:start] + r'''  function doMove(move){
 ''' + s[end:]
 
 p.write_text(s, encoding='utf-8')
-print('no attack display, board style only, bots skip animation by default')
+print('bot moves animate without waiting; stale AI searches cancelled')
