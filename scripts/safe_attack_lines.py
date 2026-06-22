@@ -3,7 +3,7 @@ from pathlib import Path
 p = Path('app/src/main/assets/chess.html')
 s = p.read_text(encoding='utf-8')
 
-# Keep the board style selector.
+# Keep the board style selector and add bot animation toggle.
 s = s.replace("""        </select>
       </div>
       <div class="field" id="sideField">""", """        </select>
@@ -13,6 +13,13 @@ s = s.replace("""        </select>
         <select id="boardStyleSelect">
           <option value="bright">Bright board</option>
           <option value="dark">Dark board</option>
+        </select>
+      </div>
+      <div class="field" id="botWaitField">
+        <label for="botWaitSelect">Bot animation</label>
+        <select id="botWaitSelect">
+          <option value="wait">Wait for animation</option>
+          <option value="skip">Skip animation</option>
         </select>
       </div>
       <div class="field" id="sideField">""", 1)
@@ -40,7 +47,9 @@ s = s[:start] + new + s[end:]
 s = s.replace('    updateLabels();\n    keepBoardSquare();', '    drawAttackLines(threatenedInfo);\n    updateLabels();\n    keepBoardSquare();')
 
 # Wire board style UI and save it.
-s = s.replace("""const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect');""", """const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect'), boardStyleSelect=$('boardStyleSelect');""")
+s = s.replace("""const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect');""", """const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect'), boardStyleSelect=$('boardStyleSelect'), botWaitSelect=$('botWaitSelect');""")
+s = s.replace("""  const sideField=$('sideField'), thinkField=$('thinkField');""", """  const sideField=$('sideField'), thinkField=$('thinkField'), botWaitField=$('botWaitField');""")
+s = s.replace("""let botsPaused=false, whiteBotTime=120, blackBotTime=120;""", """let botsPaused=false, whiteBotTime=120, blackBotTime=120, botWaitAnimation=true;""")
 s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
     const chosen = style === 'dark' ? 'dark' : 'bright';
     document.body.dataset.boardStyle = chosen;
@@ -50,7 +59,56 @@ s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
   setBoardStyle((()=>{ try{return localStorage.getItem('chessDuelBoardStyle')||'bright'}catch(e){return 'bright'} })());
   if(boardStyleSelect) boardStyleSelect.addEventListener('change', ()=>setBoardStyle(boardStyleSelect.value));
 
+  function setBotWaitAnimation(value){
+    botWaitAnimation = value !== 'skip';
+    if(botWaitSelect) botWaitSelect.value = botWaitAnimation ? 'wait' : 'skip';
+    try{ localStorage.setItem('chessDuelBotWaitAnimation', botWaitAnimation ? 'wait' : 'skip'); }catch(e){}
+  }
+  setBotWaitAnimation((()=>{ try{return localStorage.getItem('chessDuelBotWaitAnimation')||'wait'}catch(e){return 'wait'} })());
+  if(botWaitSelect) botWaitSelect.addEventListener('change', ()=>setBotWaitAnimation(botWaitSelect.value));
+
   const PST = {""")
 
+# Show the bot animation setting only when a bot/AI mode is active.
+s = s.replace("""    blackBotField.classList.toggle('hidden', !bot);""", """    blackBotField.classList.toggle('hidden', !bot);
+    if(botWaitField) botWaitField.classList.toggle('hidden', !(ai || bot));""")
+s = s.replace("""    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)}` : 'AI: off';""", """    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}` : 'AI: off';""")
+
+# Add optional no-wait behavior: bot/AI moves skip the visual animation when disabled.
+start = s.index('  function doMove(move){')
+end = s.index('\n\n  function getAIWorker', start)
+do_move = r'''  function doMove(move){
+    if(isAnimatingMove) return;
+    const before=deepClone(game);
+    const after=applyMove(before, move);
+    const moveText = moveToText(before, move, after);
+    const hist={game:before, selected, legalTargets:deepClone(legalTargets), moveTexts:deepClone(moveTexts), flipped, mode, humanColor, aiColor, aiTime, move};
+    const botControlledMove = mode==='bot' || (mode==='ai' && before.turn===aiColor);
+    const finishMove = ()=>{
+      history.push(hist);
+      game=after;
+      moveTexts.push(moveText);
+      annotateResult(game);
+      applyRepetitionDraw();
+      hapticForMove(before, move, game);
+      visualMove=null;
+      isAnimatingMove=false;
+      draw();
+      maybeAIMove();
+    };
+    haptic(move.capture||move.enPassantCapture?'capture':'move');
+    selected=null; legalTargets=[];
+    if(botControlledMove && !botWaitAnimation){
+      finishMove();
+      return;
+    }
+    isAnimatingMove=true;
+    visualMove={from:move.from, to:move.to, capture:!!(move.capture||move.enPassantCapture), piece:before.board[move.from[0]][move.from[1]]};
+    draw();
+    animateMoveVisual(before, move, finishMove);
+  }
+'''
+s = s[:start] + do_move + s[end:]
+
 p.write_text(s, encoding='utf-8')
-print('attack display removed, board style kept')
+print('attack display removed, board style and bot wait toggle kept')
