@@ -15,7 +15,7 @@ s = s.replace("""        </select>
           <option value="dark">Dark board</option>
         </select>
       </div>
-      <div class="field" id="botWaitField">
+      <div class="field hidden" id="botWaitField">
         <label for="botWaitSelect">Bot animation</label>
         <select id="botWaitSelect">
           <option value="wait">Wait for animation</option>
