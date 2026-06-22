@@ -3,6 +3,7 @@ from pathlib import Path
 p = Path('app/src/main/assets/chess.html')
 s = p.read_text(encoding='utf-8')
 
+# Keep only the board style selector. No attack display, no bot animation setting UI.
 s = s.replace("""        </select>
       </div>
       <div class="field" id="sideField">""", """        </select>
@@ -12,13 +13,6 @@ s = s.replace("""        </select>
         <select id="boardStyleSelect">
           <option value="bright">Bright board</option>
           <option value="dark">Dark board</option>
-        </select>
-      </div>
-      <div class="field hidden" id="botWaitField">
-        <label for="botWaitSelect">Bot animation</label>
-        <select id="botWaitSelect">
-          <option value="wait">Wait for animation</option>
-          <option value="skip">Skip animation</option>
         </select>
       </div>
       <div class="field" id="sideField">""", 1)
@@ -33,6 +27,7 @@ body[data-board-style="dark"] .square.black .piece{color:#1b2128;text-shadow:0 1
 .square.threatened-by-last .piece{filter:drop-shadow(0 5px 6px rgba(0,0,0,.33))!important}
 </style>''')
 
+# Disable attack display fully.
 start = s.index('  function drawAttackLines(info){')
 end = s.index('\n\n  function kingCount', start)
 s = s[:start] + r'''  function drawAttackLines(info){
@@ -42,9 +37,8 @@ s = s[:start] + r'''  function drawAttackLines(info){
 ''' + s[end:]
 s = s.replace('    updateLabels();\n    keepBoardSquare();', '    drawAttackLines(threatenedInfo);\n    updateLabels();\n    keepBoardSquare();')
 
-s = s.replace("""const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect');""", """const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect'), boardStyleSelect=$('boardStyleSelect'), botWaitSelect=$('botWaitSelect');""")
-s = s.replace("""  const sideField=$('sideField'), thinkField=$('thinkField');""", """  const sideField=$('sideField'), thinkField=$('thinkField'), botWaitField=$('botWaitField');""")
-s = s.replace("""let botsPaused=false, whiteBotTime=120, blackBotTime=120;""", """let botsPaused=false, whiteBotTime=120, blackBotTime=120, botWaitAnimation=true;""")
+# Board style UI only.
+s = s.replace("""const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect');""", """const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect'), boardStyleSelect=$('boardStyleSelect');""")
 s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
     const chosen = style === 'dark' ? 'dark' : 'bright';
     document.body.dataset.boardStyle = chosen;
@@ -54,27 +48,9 @@ s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
   setBoardStyle((()=>{ try{return localStorage.getItem('chessDuelBoardStyle')||'bright'}catch(e){return 'bright'} })());
   if(boardStyleSelect) boardStyleSelect.addEventListener('change', ()=>setBoardStyle(boardStyleSelect.value));
 
-  function setBotWaitAnimation(value){
-    botWaitAnimation = value !== 'skip';
-    if(botWaitSelect) botWaitSelect.value = botWaitAnimation ? 'wait' : 'skip';
-    try{ localStorage.setItem('chessDuelBotWaitAnimation', botWaitAnimation ? 'wait' : 'skip'); }catch(e){}
-  }
-  setBotWaitAnimation((()=>{ try{return localStorage.getItem('chessDuelBotWaitAnimation')||'wait'}catch(e){return 'wait'} })());
-  if(botWaitSelect) botWaitSelect.addEventListener('change', ()=>setBotWaitAnimation(botWaitSelect.value));
-
   const PST = {""")
 
-s = s.replace("""    sideField.classList.toggle('hidden', !ai);
-    thinkField.classList.toggle('hidden', !ai);
-    whiteBotField.classList.toggle('hidden', !bot);
-    blackBotField.classList.toggle('hidden', !bot);""", """    sideField.style.display = ai ? '' : 'none';
-    thinkField.style.display = ai ? '' : 'none';
-    whiteBotField.style.display = bot ? '' : 'none';
-    blackBotField.style.display = bot ? '' : 'none';
-    if(botWaitField) botWaitField.style.display = (ai || bot) ? '' : 'none';""")
-
-s = s.replace("""    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)}` : 'AI: off';""", """    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}` : 'AI: off';""")
-
+# Bots/AI should not wait: skip animation for bot-controlled moves by default.
 start = s.index('  function doMove(move){')
 end = s.index('\n\n  function getAIWorker', start)
 s = s[:start] + r'''  function doMove(move){
@@ -98,7 +74,7 @@ s = s[:start] + r'''  function doMove(move){
     };
     haptic(move.capture||move.enPassantCapture?'capture':'move');
     selected=null; legalTargets=[];
-    if(botControlledMove && !botWaitAnimation){
+    if(botControlledMove){
       finishMove();
       return;
     }
@@ -110,4 +86,4 @@ s = s[:start] + r'''  function doMove(move){
 ''' + s[end:]
 
 p.write_text(s, encoding='utf-8')
-print('inactive controls force-hidden, attack display removed')
+print('no attack display, board style only, bots skip animation by default')
