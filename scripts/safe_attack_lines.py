@@ -3,7 +3,24 @@ from pathlib import Path
 p = Path('app/src/main/assets/chess.html')
 s = p.read_text(encoding='utf-8')
 
+s = s.replace("""        </select>
+      </div>
+      <div class="field" id="sideField">""", """        </select>
+      </div>
+      <div class="field" id="boardStyleField">
+        <label for="boardStyleSelect">Board style</label>
+        <select id="boardStyleSelect">
+          <option value="bright">Bright board</option>
+          <option value="dark">Dark board</option>
+        </select>
+      </div>
+      <div class="field" id="sideField">""", 1)
+
 s = s.replace('</style>', '''
+body[data-board-style="bright"]{--light:#f1ddb5;--dark:#9f8058}
+body[data-board-style="dark"]{--light:#b8b1a7;--dark:#292a2e}
+body[data-board-style="dark"] .square.white .piece{color:#f8fafc;text-shadow:0 2px 0 rgba(20,20,20,.65),0 0 18px rgba(255,255,255,.34)}
+body[data-board-style="dark"] .square.black .piece{color:#1b2128;text-shadow:0 1px 0 rgba(255,255,255,.20),0 0 14px rgba(0,0,0,.45)}
 .board{position:relative!important;overflow:visible!important;isolation:isolate!important}
 .piece-wrap{position:relative;z-index:6!important}
 .attack-beam{position:absolute;left:0;top:0;transform-origin:0 50%;pointer-events:none;z-index:3;border-radius:10px;mix-blend-mode:screen;background:linear-gradient(90deg,transparent,rgba(255,45,80,.42) 12%,rgba(255,75,105,.58) 50%,rgba(255,45,80,.42) 88%,transparent);box-shadow:0 0 24px rgba(255,35,70,.70),0 0 60px rgba(255,35,70,.38),inset 0 0 18px rgba(255,255,255,.12);border-top:1px solid rgba(255,210,220,.7);border-bottom:1px solid rgba(255,40,80,.8);opacity:.94}
@@ -53,5 +70,17 @@ new = r'''  function drawAttackLines(info){
 s = s[:start] + new + s[end:]
 s = s.replace('    updateLabels();\n    keepBoardSquare();', '    drawAttackLines(threatenedInfo);\n    updateLabels();\n    keepBoardSquare();')
 
+s = s.replace("""const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect');""", """const modeSelect=$('modeSelect'), sideSelect=$('sideSelect'), thinkSelect=$('thinkSelect'), boardStyleSelect=$('boardStyleSelect');""")
+s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
+    const chosen = style === 'dark' ? 'dark' : 'bright';
+    document.body.dataset.boardStyle = chosen;
+    if(boardStyleSelect) boardStyleSelect.value = chosen;
+    try{ localStorage.setItem('chessDuelBoardStyle', chosen); }catch(e){}
+  }
+  setBoardStyle((()=>{ try{return localStorage.getItem('chessDuelBoardStyle')||'bright'}catch(e){return 'bright'} })());
+  if(boardStyleSelect) boardStyleSelect.addEventListener('change', ()=>setBoardStyle(boardStyleSelect.value));
+
+  const PST = {""")
+
 p.write_text(s, encoding='utf-8')
-print('wide beam attacks')
+print('wide beam plus board style')
