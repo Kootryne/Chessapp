@@ -58,6 +58,7 @@ new = r'''  function drawAttackLines(info){
   }
 '''
 s = s[:start] + new + s[end:]
+s = s.replace('    updateLabels();\n    keepBoardSquare();', '    drawAttackLines(threatenedInfo);\n    updateLabels();\n    keepBoardSquare();')
 
 p.write_text(s, encoding='utf-8')
-print('svg debug lines')
+print('svg debug lines called')
