@@ -69,9 +69,16 @@ s = s.replace("""  const PST = {""", """  function setBoardStyle(style){
 
   const PST = {""")
 
-# Show the bot animation setting only when a bot/AI mode is active.
-s = s.replace("""    blackBotField.classList.toggle('hidden', !bot);""", """    blackBotField.classList.toggle('hidden', !bot);
-    if(botWaitField) botWaitField.classList.toggle('hidden', !(ai || bot));""")
+# Show/hide controls with inline display so inactive fields cannot block taps.
+s = s.replace("""    sideField.classList.toggle('hidden', !ai);
+    thinkField.classList.toggle('hidden', !ai);
+    whiteBotField.classList.toggle('hidden', !bot);
+    blackBotField.classList.toggle('hidden', !bot);
+    if(botWaitField) botWaitField.classList.toggle('hidden', !(ai || bot));""", """    sideField.style.display = ai ? '' : 'none';
+    thinkField.style.display = ai ? '' : 'none';
+    whiteBotField.style.display = bot ? '' : 'none';
+    blackBotField.style.display = bot ? '' : 'none';
+    if(botWaitField) botWaitField.style.display = (ai || bot) ? '' : 'none';""")
 s = s.replace("""    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)}` : 'AI: off';""", """    aiTip.textContent = editor ? 'Editor: build any position' : bot ? `AI: White ${labelOf(whiteBotThinkSelect)} • Black ${labelOf(blackBotThinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}${botsPaused?' • paused':''}` : ai ? `AI: ${humanColor==='w'?'You are White':'You are Black'} • ${labelOf(thinkSelect)} • anim ${botWaitAnimation?'wait':'skip'}` : 'AI: off';""")
 
 # Add optional no-wait behavior: bot/AI moves skip the visual animation when disabled.
@@ -111,4 +118,4 @@ do_move = r'''  function doMove(move){
 s = s[:start] + do_move + s[end:]
 
 p.write_text(s, encoding='utf-8')
-print('attack display removed, board style and bot wait toggle kept')
+print('inactive controls force-hidden, attack display removed')
